@@ -4,12 +4,13 @@ import api from "../api";
 function TodoList() {
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState("");
-
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
 
   useEffect(() => {
-    api.get("/").then(res => setTodos(res.data));
+    api.get("/").then(res => {
+      setTodos(res.data.todos); // ✅ FIX
+    });
   }, []);
 
   const addTodo = async () => {
@@ -25,26 +26,22 @@ function TodoList() {
   };
 
   const editTodo = async (id) => {
-  if (!editText.trim()) return;
-  try {
+    if (!editText.trim()) return;
     const res = await api.put(`/edit/${id}`, { text: editText });
     setTodos(todos.map(todo => todo._id === id ? res.data : todo));
     setEditId(null);
     setEditText("");
-  } catch (err) {
-    console.error("Error editing todo:", err);
-  }
-};
+  };
 
   const deleteTodo = async (id) => {
     await api.delete(`/${id}`);
     setTodos(todos.filter(todo => todo._id !== id));
   };
 
-
   return (
     <div className="todo-container">
       <h1>📝 To-Do List</h1>
+
       <div className="input-section">
         <input
           value={text}
@@ -55,7 +52,7 @@ function TodoList() {
       </div>
 
       <ul>
-        {todos.map(todo => (
+        {Array.isArray(todos) && todos.map(todo => (
           <li key={todo._id}>
             {editId === todo._id ? (
               <>
