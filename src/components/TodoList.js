@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import api from "../api";
 
 function TodoList() {
@@ -7,35 +7,68 @@ function TodoList() {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
 
+  // 🔹 Fetch all todos
   useEffect(() => {
-    api.get("/").then(res => {
-      setTodos(res.data.todos); // ✅ FIX
-    });
+    api.get("")
+      .then(res => {
+        // backend returns { todos: [...] }
+        setTodos(res.data.todos || []);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setTodos([]);
+      });
   }, []);
 
+  // 🔹 Add todo
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await api.post("/", { text });
-    setTodos([...todos, res.data]);
-    setText("");
+
+    try {
+      const res = await api.post("", { text });
+      setTodos(prev => [...prev, res.data]);
+      setText("");
+    } catch (err) {
+      console.error("Add error:", err);
+    }
   };
 
+  // 🔹 Toggle complete
   const toggleTodo = async (id) => {
-    const res = await api.put(`/${id}`);
-    setTodos(todos.map(todo => todo._id === id ? res.data : todo));
+    try {
+      const res = await api.put(`/${id}`);
+      setTodos(prev =>
+        prev.map(todo => (todo._id === id ? res.data : todo))
+      );
+    } catch (err) {
+      console.error("Toggle error:", err);
+    }
   };
 
-  const editTodo = async (id) => {
+  // 🔹 Edit todo
+  const saveEdit = async (id) => {
     if (!editText.trim()) return;
-    const res = await api.put(`/edit/${id}`, { text: editText });
-    setTodos(todos.map(todo => todo._id === id ? res.data : todo));
-    setEditId(null);
-    setEditText("");
+
+    try {
+      const res = await api.put(`/edit/${id}`, { text: editText });
+      setTodos(prev =>
+        prev.map(todo => (todo._id === id ? res.data : todo))
+      );
+      setEditId(null);
+      setEditText("");
+    } catch (err) {
+      console.error("Edit error:", err);
+    }
   };
 
+  // 🔹 Delete todo
   const deleteTodo = async (id) => {
-    await api.delete(`/${id}`);
-    setTodos(todos.filter(todo => todo._id !== id));
+    try {
+      await api.delete(`/${id}`);
+      setTodos(prev => prev.filter(todo => todo._id !== id));
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
   };
 
   return (
@@ -58,9 +91,9 @@ function TodoList() {
               <>
                 <input
                   value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
+                  onChange={e => setEditText(e.target.value)}
                 />
-                <button onClick={() => editTodo(todo._id)}>💾 Save</button>
+                <button onClick={() => saveEdit(todo._id)}>💾 Save</button>
                 <button onClick={() => setEditId(null)}>❌ Cancel</button>
               </>
             ) : (
@@ -68,15 +101,24 @@ function TodoList() {
                 <span
                   onClick={() => toggleTodo(todo._id)}
                   style={{
-                    textDecoration: todo.completed ? "line-through" : "",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    textDecoration: todo.completed ? "line-through" : "none"
                   }}
                 >
                   {todo.text}
                 </span>
                 <div>
-                  <button onClick={() => { setEditId(todo._id); setEditText(todo.text); }}>✏️ Edit</button>
-                  <button onClick={() => deleteTodo(todo._id)}>🗑️ Delete</button>
+                  <button
+                    onClick={() => {
+                      setEditId(todo._id);
+                      setEditText(todo.text);
+                    }}
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button onClick={() => deleteTodo(todo._id)}>
+                    🗑️ Delete
+                  </button>
                 </div>
               </>
             )}
